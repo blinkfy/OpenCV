@@ -1,0 +1,31 @@
+#形态学操作和图像金字塔
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+img=cv2.imread('computer.png')
+print(img.shape)
+img=cv2.resize(img,(640,640))
+cv2.imshow('img',img)
+he=cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+img2=cv2.erode(img,he)
+cv2.imshow('erode',img2)
+img2=cv2.dilate(img2,he)
+cv2.imshow('dilate',img2)
+img2=cv2.morphologyEx(img,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
+cv2.imshow('open',img2)
+img2=cv2.morphologyEx(img,cv2.MORPH_CLOSE,np.ones((3,3),np.uint8))
+cv2.imshow('close',img2)
+img2=cv2.morphologyEx(img,cv2.MORPH_GRADIENT,np.ones((3,3),np.uint8))
+cv2.imshow('gradient',img2)
+img2=cv2.morphologyEx(img,cv2.MORPH_TOPHAT,np.ones((3,3),np.uint8))
+cv2.imshow('tophat',img2)
+img2=cv2.morphologyEx(img,cv2.MORPH_BLACKHAT,np.ones((3,3),np.uint8))
+cv2.imshow('blackhat',img2)
+img2=cv2.pyrDown(img)
+cv2.imshow('pyrDown',img2)
+img2=cv2.pyrUp(img2)
+cv2.imshow('pyrUp',img2)
+cv2.imshow('laplacian',img-img2)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
