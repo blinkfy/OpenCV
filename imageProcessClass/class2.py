@@ -59,4 +59,5 @@ for txt in ['a','b','c','d','e','f','g','h','i']:
     cv2.line(show,(x,0),(x,show.shape[0]),255,2)
     x+=a.shape[1]
 cv2.imshow('body',cv2.resize(show,(0,0),fx=0.45,fy=0.45))
+cv2.imwrite('body_processed.png',show)
 cv2.waitKey(0)
