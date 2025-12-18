@@ -1,7 +1,10 @@
+SOURCE=['marilyn','einstein']
+# SOURCE=['apple','orange']
 import cv2
 import numpy as np
-A = cv2.imread('apple.jpg')
-B = cv2.imread('orange.jpg')
+A = cv2.imread(SOURCE[0]+'.jpg')
+A=cv2.resize(A,(512,512))
+B = cv2.imread(SOURCE[1]+'.jpg')
 B=cv2.resize(B,(A.shape[1],A.shape[0]))
 # generate Gaussian pyramid for A
 G = A.copy()
@@ -59,38 +62,41 @@ for i in range(1, len(LS)):
     ls_ = cv2.add(ls_, LS[i])
 cv2.imshow('Pyramid_blending',ls_)
 
-Agray=cv2.cvtColor(A,cv2.COLOR_BGR2GRAY)
+Agray,u2,v2=cv2.split(cv2.cvtColor(A,cv2.COLOR_BGR2YUV))
 Adft = cv2.dft(np.float32(Agray),flags = cv2.DFT_COMPLEX_OUTPUT) 	#傅里叶变换
 Adft_shift = np.fft.fftshift(Adft)								#将低频值移到中心
 yuv=cv2.cvtColor(B,cv2.COLOR_BGR2YUV)
 Bgray,u,v=cv2.split(yuv)
 Bdft = cv2.dft(np.float32(Bgray),flags = cv2.DFT_COMPLEX_OUTPUT)
 Bdft_shift = np.fft.fftshift(Bdft)
-mask = np.zeros(Agray.shape, dtype=np.uint8)
-cv2.circle(mask,(Agray.shape[1]//2,Agray.shape[0]//2),3,1,-1)
-Adft_shift_masked = Adft_shift * mask[:,:,np.newaxis]
-Bdft_shift_masked = Bdft_shift * (1 - mask)[:,:,np.newaxis]
 
-aldft_ishift=np.fft.ifftshift(Adft_shift_masked)
-bldft_ishift=np.fft.ifftshift(Bdft_shift_masked)
-alimg=cv2.idft(aldft_ishift)
-blimg=cv2.idft(bldft_ishift)
-iaDft=cv2.magnitude(alimg[:,:,0],alimg[:,:,1])
-ibDft=cv2.magnitude(blimg[:,:,0],blimg[:,:,1])
-ia=np.uint8(iaDft/iaDft.max() * 175)
-ib=np.uint8(ibDft/ibDft.max() * 175)
-mask=cv2.imread('apple-mask.png',cv2.IMREAD_GRAYSCALE)
-y_sum = cv2.add(ia, ib)
-mask_f = (mask.astype(np.float32)) / 255.0
-blend_float = y_sum.astype(np.float32) * (1.0 - mask_f) + Agray.astype(np.float32) * mask_f
-y_uint8 = np.clip(blend_float, 0, 255).astype(np.uint8)
-bgr_yuv = cv2.merge([y_uint8, u, v])
+h, w = Agray.shape
+Yf, Xf = np.ogrid[:h, :w]
+cx, cy = w // 2, h // 2
+dist2 = (Xf - cx)**2 + (Yf - cy)**2
+sigma = min(h, w) * (0.03 if SOURCE[0] == 'marilyn' else 0.015)
+freq_mask = np.exp(-dist2 / (2.0 * sigma * sigma)).astype(np.float32)
+
+freq_mask_3 = freq_mask[:, :, np.newaxis]
+combined_shift = Adft_shift * freq_mask_3 + Bdft_shift * (1.0 - freq_mask_3)
+
+combined = np.fft.ifftshift(combined_shift)
+recon = cv2.idft(combined)
+recon_real = recon[:, :, 0]
+# normalize
+recon_real = recon_real - recon_real.min()
+if recon_real.max() != 0:
+    recon_real = recon_real / recon_real.max()
+iy = (recon_real * 255.0).astype(np.uint8)
+u = cv2.GaussianBlur((u2//2+u//2), (11, 11), 0)
+v = cv2.GaussianBlur((v2//2+v//2), (11, 11), 0)
+bgr_yuv = cv2.merge([iy, u, v])
 bimg = cv2.cvtColor(bgr_yuv, cv2.COLOR_YUV2BGR)
 cv2.imshow('Fourier_blending',bimg)
 
-A=cv2.blur(A,(15,15))
-B2=cv2.blur(B,(55,55))
-B=cv2.subtract(B,B2)*1.5
+A=cv2.blur(A/(1.3 if SOURCE[0] == 'marilyn' else 1),(21,21)).astype(np.uint8)
+B2=cv2.blur(B,(25,25))
+B=cv2.subtract(B,B2)
 cv2.imshow('Gaussian_blending',cv2.add(A, B.astype(np.uint8)))
-cv2.imwrite('blending.png',np.hstack([ls_,bimg, cv2.add(A, B.astype(np.uint8))]))
+cv2.imwrite('blended.png',np.hstack([ls_,bimg, cv2.add(A, B.astype(np.uint8))]))
 cv2.waitKey(0)
