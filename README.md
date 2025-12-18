@@ -1,4 +1,4 @@
 # OpenCV
 OpenCV programing learning
 
-- [you can get my whole note at here](https://www.yuque.com/ssfzx/notes/opencv)
+- [you can get my note here](https://www.yuque.com/ssfzx/notes/opencv)
